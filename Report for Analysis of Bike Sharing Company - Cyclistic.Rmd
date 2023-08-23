@@ -1,0 +1,349 @@
+---
+title: 'Analysis of Bike Sharing Company: Cyclistic'
+author: "Wale Adio"
+date: "2023-08-19"
+output:
+  pdf_document:
+    toc: yes
+  html_document: 
+    toc: yes
+    number_sections: yes
+    fig_width: 5
+    fig_height: 3.5
+    fig_caption: yes
+    df_print: tibble
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+knitr::opts_chunk$set(echo = TRUE)
+# Set the root directory for notebook chunks
+knitr::opts_knit$set(root.dir = "/Users/Wale/Downloads/Projects/Google Analytics/Cyclistic/Divvy_Project")
+```
+
+# Introduction
+
+## Background
+
+Cyclistic offers a bike sharing program that has expanded to a fleet of 5,824 bicycles stationed across 692 station in Chicago. The company seeks to provide an eco-friendly and convenient means of transportation for both residents and visitors. However, the company aims to increase the subscription rate of its casual riders. 
+
+The aim of this article is to provide valuable insights and recommendations that could help retain and increase its casual riders.
+
+
+## Problem Statement
+
+The company has noticed a lower subscription rate among its casual riders compared to its annual members. The company would like to understand the factors contributing to this trend and come up with ways to encourage casual riders to subscribe.
+
+
+# Data
+
+## Data Description
+
+For this project, historical trip data was obtained from Cyclistic. An analysis of trip data for the previous year will be conducted.
+
+## Methodology
+
+In this section, all packages that were installed and loaded for this project will be discussed. They are listed below:
+
+* **Tidyverse**: This a collection of several R packages working together for data importation, manipulation, visualization and analysis. The packages that would be useful to this project include;
+
+ * **Dplyr**: This package is for data manipulation and provides functions like arrange, filter, mutate and summarize.
+ * **Readr**: This package is for reading flat files like CSV.
+ * **Stringr**: This package is for string manipulation, provides functions that allows for manipulation of text data.
+ * **Ggplot2**: This package allows for all visualizations.
+
+* **Lubridate**: This package was installed to ease working with date and times. Allowing manipulation and formatting of date and time data. 
+
+```{r include=FALSE}
+# Setting Directory
+# First the directory needs to be established for data importation
+
+setwd("/Users/Wale/Downloads/Projects/Google Analytics/Cyclistic/Divvy_Project")
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+#Importing Datasets
+#The data set were imported, with the data set capturing bike sharing data from 2019 q2 to 2020 q1. 
+
+# Uploading csv files
+q2_2019 <- read.csv("Divvy_Trips_2019_Q2.csv")
+q3_2019 <- read.csv("Divvy_Trips_2019_Q3.csv")
+q4_2019 <- read.csv("Divvy_Trips_2019_Q4.csv")
+q1_2020 <- read.csv("Divvy_Trips_2020_Q1.csv")
+
+# Viewing column names and structure
+
+str(q2_2019)
+colnames(q2_2019)
+
+str(q3_2019)
+colnames(q3_2019)
+
+str(q4_2019)
+colnames(q4_2019)
+
+str(q1_2020)
+colnames(q1_2020)
+
+```
+
+## Data Cleaning
+
+The Tidyverse packages were utilized during data manipulation and wrangling. This section will detail how the data sets were processed prior to analysis. 
+
+### Data wrangling and Combining into a Single Data Frame
+
+* **Renaming Columns**: Upon inspection, it was noticed column names in 2019 q2, q3 & q4 differed from 2020 q1. To ensure consistency, 2019 column names were renamed to match that of 2020. 
+* **Converting Datatypes**: The datatype of ride_id and rideable_type were changed to character to all datasets to be merged. 
+* **Merging Datasets**: Datasets for the respective quarters were merged into one dataset.
+* **Removing Irrelevant Columns**: Columns that were exclude from 2020 were dropped as they were deemed irrelevant. 
+
+### Prepping Data for Analysis
+
+This section involves renaming columns to ensure uniformity, ensuring data types are consistent, merging data sets and removing irrelevant columns and bad data. Additionally, creating new column for data aggregation.
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Renaming Columns
+#Columns in q2_2019, q3_2019 & q4_2019 to be renamed to make them consistent with q1_2020
+q2_2019 <- rename(q2_2019,
+                 ride_id = "X01...Rental.Details.Rental.ID",
+                 rideable_type = "X01...Rental.Details.Bike.ID",
+                 started_at = "X01...Rental.Details.Local.Start.Time",
+                 ended_at = "X01...Rental.Details.Local.End.Time",
+                 start_station_name = "X03...Rental.Start.Station.Name",
+                 start_station_id = "X03...Rental.Start.Station.ID",
+                 end_station_name = "X02...Rental.End.Station.Name",
+                 end_station_id = "X02...Rental.End.Station.ID",
+                 member_casual = "User.Type")
+
+q3_2019 <- rename(q3_2019,
+                  ride_id = "trip_id",
+                  rideable_type = "bikeid",
+                  started_at = "start_time",
+                  ended_at = "end_time",
+                  start_station_name = "from_station_name",
+                  start_station_id = "from_station_id",
+                  end_station_name = "to_station_name",
+                  end_station_id = "to_station_id",
+                  member_casual = "usertype")
+
+q4_2019 <- rename(q4_2019,
+                  ride_id = "trip_id",
+                  rideable_type = "bikeid",
+                  started_at = "start_time",
+                  ended_at = "end_time",
+                  start_station_name = "from_station_name",
+                  start_station_id = "from_station_id",
+                  end_station_name = "to_station_name",
+                  end_station_id = "to_station_id",
+                  member_casual = "usertype")
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+##Converting data types in q2_2019, q3_2019 & q4_2019 to match data types in q1_2020
+q2_2019 <- mutate(q2_2019, ride_id = as.character(ride_id),
+                  rideable_type = as.character(rideable_type))
+q3_2019 <- mutate(q3_2019, ride_id = as.character(ride_id),
+                  rideable_type = as.character(rideable_type))
+q4_2019 <- mutate(q4_2019, ride_id = as.character(ride_id),
+                  rideable_type = as.character(rideable_type))
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Combining Respective Data Sets
+bike_trips <- bind_rows(q1_2020, q2_2019, q3_2019, q4_2019)
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Removing Irrelevant Columns
+#birthyear, gender, start_lat, start_lng, end_lat, end_lng, member.gender, X05...member.details.member.birthday.year, tripduration, X01...Rental.details.duration.in.seconds.uncapped 
+bike_trips <- bike_trips %>% 
+  select(-c(birthyear, gender, start_lat, start_lng, end_lat, end_lng, Member.Gender, 
+            "X05...Member.Details.Member.Birthday.Year", "tripduration", "X01...Rental.Details.Duration.In.Seconds.Uncapped"))
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+### Inspecting Combined Data Set
+summary(bike_trips)
+str(bike_trips)
+head(bike_trips)
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+### Ensuring consistency in member_casual column
+bike_trips <- bike_trips %>% 
+  mutate(member_casual = recode(member_casual,
+         "Subscriber" = "member",
+         "Customer" = "casual"))
+
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Creating New Columns
+# New columns **(Day, Month & Year)** were created to enable data aggregation
+
+bike_trips$date <- as.Date(bike_trips$started_at)
+bike_trips$month <- format(as.Date(bike_trips$date),"%m")
+bike_trips$day <- format(as.Date(bike_trips$date),"%d")
+bike_trips$year <- format(as.Date(bike_trips$date),"%Y")
+bike_trips$day_of_week <- format(as.Date(bike_trips$date),"%A")
+
+#Creating new column to calculate duration of each ride 
+bike_trips$ride_length <- difftime(bike_trips$ended_at,bike_trips$started_at)
+
+is.factor(bike_trips$ride_length)
+bike_trips$ride_length <- as.numeric(as.character(bike_trips$ride_length))
+is.numeric(bike_trips$ride_length)
+
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Removing Bad Data
+bike_trips_v2 <- bike_trips[!(bike_trips$start_station_name == "HQ QR" | bike_trips$ride_length<0),]
+
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Arranging Days of the Week in Order
+bike_trips_v2$day_of_week <- ordered(bike_trips_v2$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+```
+
+
+# Descriptive Analysis
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(bike_trips_v2$ride_length)
+
+```
+
+### Comparing Members vs Casual Riders
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+aggregate(bike_trips_v2$ride_length ~ bike_trips_v2$member_casual, FUN = mean)
+aggregate(bike_trips_v2$ride_length ~ bike_trips_v2$member_casual, FUN = median)
+aggregate(bike_trips_v2$ride_length ~ bike_trips_v2$member_casual, FUN = max)
+aggregate(bike_trips_v2$ride_length ~ bike_trips_v2$member_casual, FUN = min)
+
+```
+
+### Comparing Average Ride Times by Day for Members vs Casual Rider
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+aggregate(bike_trips_v2$ride_length ~ bike_trips_v2$member_casual + bike_trips_v2$day_of_week, FUN = mean)
+
+```
+
+### Analyzing Ridership Data by Type & Weekday
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+bike_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n(), average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)
+
+```
+
+# Results and Findings
+
+### Comparing member vs casual ride counts by weekday
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+bike_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(number_of_rides = n()) %>%
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(title = "Ride Counts by Weekday",
+       x = "Weekday",
+       y = "Number of Rides",
+       fill = "Member/Casual") +
+  theme_minimal()
+
+```
+
+The analysis revealed weekly ride patterns between members and casual riders. It showed casual riders tend to make use of the service more during the weekends, while members had consistent usage throughout the week
+
+
+### Average ride duration by weekday and rider type 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+bike_trips_v2 %>%
+  mutate(weekday = wday(started_at, label = TRUE)) %>%
+  group_by(member_casual, weekday) %>%
+  summarise(average_duration = mean(ride_length)) %>%
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge") +
+  labs(title = "Average Ride Duration by Weekday and Rider Type",
+       x = "Weekday",
+       y = "Average Ride Duration (minutes)",
+       fill = "Member/Casual") +
+  theme_minimal()
+
+```
+
+The average ride duration provided an interesting insight into bike usage. From the analysis, we see that casual riders tend to ride bike longer compared to members. This suggests casual riders use the bikes to explore the city and for leisure purposes.
+
+
+```{r eval=FALSE, include=FALSE}
+# Box plot of ride lengths by Rider Type
+ggplot(bike_trips_v2, aes(x = member_casual, y = ride_length, fill = member_casual)) +
+  geom_boxplot() +
+  labs(title = "Box Plot of Ride Lengths by Rider Type",
+       x = "Rider Type",
+       y = "Ride Length (seconds)",
+       fill = "Member/Casual") +
+  theme_minimal()
+
+```
+
+### Time series of Average daily Ride Count
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+bike_trips_v2 %>%
+  group_by(date) %>%
+  summarise(average_daily_rides = n()) %>%
+  ggplot(aes(x = date, y = average_daily_rides)) +
+  geom_line() +
+  labs(title = "Time Series of Average Daily Ride Counts",
+       x = "Date",
+       y = "Average Daily Ride Counts") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+The time series analysis showed usage fluctuation throughout the year. This provides the company the opportunity to anticipate seasonal trends and plan strategic campaigns accordingly.
+
+
+# Recommendations
+
+Based on the findings from the analysis, I would propose the following recommendations:
+
+* **Seasonal Offers**: From the results, we can see that daily rides are higher during spring and summer months compared to fall and winter months. Therefore, I would recommend the company provide offers and promotions during those periods to retain more riders. 
+* **Weekday Offers**: To encourage more casual members, I recommend the company offer discounted subscriptions during the weekdays. This would encourage casual riders to subscribe as they tend to use bike less during weekdays.
+* **Collaborations**: The company should partner with local businesses to provide deals or discounts to subscribers. This would encourage causal rider to subscribe. 
+* **Targeted Campaigns**: The marketing team should create ads specifically focused on casual members, informing them of subscription benefits such as discounts, partnerships, and weekend deals as casual riders tend to use bikes more during the weekends.
+
